@@ -5,6 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:SlovoedCheat"
         mc:Ignorable="d"
+        x:Name="Main"
         d:DataContext="{d:DesignInstance local:MainViewModel}"
         Title="MainWindow" Height="450" Width="800">
     <Grid>
@@ -21,10 +22,12 @@
             <Button Command="{Binding SearchCommand}" Width="50" Height="30" VerticalAlignment="Top" Margin="20">START</Button>
             <Button Command="{Binding StopCommand}" Width="50" Height="30" VerticalAlignment="Top" Margin="20">STOP</Button>
         </StackPanel>
-        <ListBox Grid.Row="0" Grid.RowSpan="2" Grid.Column="2" ItemsSource="{Binding Words, Mode=OneWay}">
+        <ListBox Grid.Row="0" Grid.RowSpan="2" Grid.Column="2" ItemsSource="{Binding Words, Mode=OneWay}" SelectedItem="{Binding SelectedWord, Mode=TwoWay}">
             <ListBox.ItemTemplate>
                 <DataTemplate DataType="{x:Type local:Word}">
-                    <TextBlock Text="{Binding Name}"/>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="{Binding Name, Mode=OneWay}"/>
+                    </StackPanel>
                 </DataTemplate>
             </ListBox.ItemTemplate>
         </ListBox>
@@ -33,13 +36,12 @@
                 <DataTemplate DataType="{x:Type local:Character}">
                     <Grid Margin="0">
                         <Rectangle Width="49" Height="49" Fill="LightGray" Stroke="Black" StrokeThickness="1" Margin="0"/>
-                        <TextBlock Text="{Binding Name, Mode=OneWay}" 
-                                   Margin="0"
-                                   TextAlignment="Center" 
+                        <TextBlock Margin="0"
+                                   Text="{Binding Name, Mode=OneWay}"
                                    HorizontalAlignment="Center"
-                                   VerticalAlignment="Center"/>
+                                   VerticalAlignment="Center">
+                        </TextBlock>
                     </Grid>
-                    <!--<TextBlock Text="{Binding Name}"/>-->
                 </DataTemplate>
             </ListView.ItemTemplate>
             <ListView.ItemsPanel>

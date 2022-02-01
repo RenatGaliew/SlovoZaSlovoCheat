@@ -1,8 +1,12 @@
 ﻿using System;
+using System.CodeDom;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Collections.ObjectModel;
+using System.Data;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
@@ -11,14 +15,14 @@ using Catel.Collections;
 using Catel.Data;
 using Catel.Logging;
 using Catel.MVVM;
+using Catel.Runtime;
 
 namespace SlovoedCheat
 {
     public class MainViewModel : ViewModelBase
     {
-        public static readonly PropertyData ValueOfProgressProperty = RegisterProperty<MainViewModel, int>(x => x.ValueOfProgress);
-        public static readonly PropertyData MaxValuesProperty = RegisterProperty<MainViewModel, int>(x => x.MaxValues);
         public static readonly PropertyData MatrixViewProperty = RegisterProperty<MainViewModel, ObservableCollection<Character>>(x => x.MatrixView);
+        public static readonly PropertyData SelectedWordProperty = RegisterProperty<MainViewModel, Word>(x => x.SelectedWord);
 
         public ObservableCollection<Character> MatrixView
         {
@@ -26,63 +30,140 @@ namespace SlovoedCheat
             set => SetValue(MatrixViewProperty, value);
         }
 
-        public int ValueOfProgress
-        {
-            get => GetValue<int>(ValueOfProgressProperty);
-            set => SetValue(ValueOfProgressProperty, value);
-        }
-
-        public int MaxValues
-        {
-            get => GetValue<int>(MaxValuesProperty);
-            set => SetValue(MaxValuesProperty, value);
-        }
-
-        public event EventHandler MethodOK;
         public ObservableCollection<Word> Words { get; private set; }
-        public List<string> _words { get; private set; }
         public Character[][] Matrix;
         public Command SearchCommand { get; set; }
         public Command StopCommand { get; set; }
         private CancellationTokenSource ct;
         private List<string> dict;
+        private SearchTask S { get; set; }
+
+        public Word SelectedWord
+        {
+            get => GetValue<Word>(SelectedWordProperty);
+            set => SetValue(SelectedWordProperty, value);
+        }
+
         public MainViewModel()
         {
             Words = new ObservableCollection<Word>();
-            _words = new List<string>();
             SearchCommand = new Command(Search);
             StopCommand = new Command(() =>
             {
                 ct.Cancel();
             });
+            var str = "";
             Matrix = new[]
             {
-                new[] {new Character("р"),new Character("и"),new Character("т"),new Character("р"),new Character("ы")},
-                new[] {new Character("у"),new Character("х"),new Character("л"),new Character("т"),new Character("у")},
-                new[] {new Character("е"),new Character("б"),new Character("е"),new Character("л"),new Character("и")},
-                new[] {new Character("й"),new Character("д"),new Character("у"),new Character("к"),new Character("т")},
-                new[] {new Character("г"),new Character("о"),new Character("р"),new Character("ы"),new Character("ь")},
+                new Character[5],
+                new Character[5],
+                new Character[5],
+                new Character[5],
+                new Character[5],
             };
-            dict = new List<string>();
-            dict.AddRange(File.ReadAllLines("russian.txt"));
-            MethodOK += OnMethodOK;
-        }
-
-        private void OnMethodOK(object? sender, EventArgs e)
-        { 
-            foreach (var word in _words)
+            int index = 0;
+            for (int i = 0; i < 5; i++)
             {
-                if (dict.Contains(word))
+                for (int j = 0; j < 5; j++)
                 {
-                    App.Current.Dispatcher.Invoke(() =>
+                    var name = str[index].ToString();
+                    var X = 0;
+                    var t = int.TryParse(name, out X);
+                    if (t)
                     {
-                        Words.Add(new Word()
+                        index++; 
+                        name = str[index].ToString();
+                        if (X is 4)
                         {
-                            Name = word
-                        });
-                    });
+                            Matrix[i][j] = new Character(name)
+                            {
+                                CKoef = 1,
+                                XKoef = 3
+                            };
+                        }
+                        else if(X is 3)
+                        {
+                            Matrix[i][j] = new Character(name)
+                            {
+                                CKoef = 1,
+                                XKoef = 2
+                            };
+                        }
+                        else if (X is 1)
+                        {
+                            Matrix[i][j] = new Character(name)
+                            {
+                                CKoef = 2,
+                                XKoef = 1
+                            };
+                        }
+                        else if (X is 2)
+                        {
+                            Matrix[i][j] = new Character(name)
+                            {
+                                CKoef = 3,
+                                XKoef = 1
+                            };
+                        }
+                    }
+                    else
+                    {
+                        Matrix[i][j] = new Character(name)
+                        {
+                            CKoef = 1,
+                            XKoef = 1
+                        };
+                    }
+                    index++;
                 }
             }
+
+            /*Matrix = new[]
+            {
+                new[] {new Character("") {CKoef=1,XKoef=1}, new Character("") {CKoef=1,XKoef=3},new Character("") {CKoef=1,XKoef=1},new Character("") {CKoef=3,XKoef=1},new Character("") {CKoef=1,XKoef=1}},
+                new[] {new Character("") {CKoef=1,XKoef=1}, new Character("") {CKoef=1,XKoef=2},new Character("") {CKoef=1,XKoef=1},new Character("") {CKoef=2,XKoef=1},new Character("") {CKoef=1,XKoef=1}},
+                new[] {new Character("") {CKoef=1,XKoef=1}, new Character("") {CKoef=1,XKoef=1},new Character("") {CKoef=1,XKoef=1},new Character("") {CKoef=1,XKoef=1},new Character("") {CKoef=1,XKoef=1}},
+                new[] {new Character("") {CKoef=1,XKoef=1}, new Character("") {CKoef=1,XKoef=1},new Character("") {CKoef=1,XKoef=1},new Character("") {CKoef=1,XKoef=1},new Character("") {CKoef=1,XKoef=1}},
+                new[] {new Character("") {CKoef=1,XKoef=1}, new Character("") {CKoef=1,XKoef=1},new Character("") {CKoef=1,XKoef=1},new Character("") {CKoef=1,XKoef=1},new Character("") {CKoef=1,XKoef=1}},
+            };*/
+            
+            MatrixView = new ObservableCollection<Character>();
+            foreach (var value in Matrix)
+            {
+                foreach (var character in value)
+                {
+                    MatrixView.Add(character);
+                }
+            }
+
+            dict = new List<string>();
+            dict.AddRange(File.ReadAllLines("russian.txt"));
+        }
+
+        protected override void OnPropertyChanged(AdvancedPropertyChangedEventArgs e)
+        {
+            base.OnPropertyChanged(e);
+        }
+
+        private void OnMethodOK(object? sender, List<Word> words)
+        {
+            var d = dict;
+            words.Sort(Comparer);
+            var wordsString = words.Select(x => x.Name);
+            var wordsList = wordsString.Intersect(d).Select(x => new Word(x));
+            App.Current.Dispatcher.Invoke(() =>
+            {
+                Words.AddRange(wordsList);
+            });
+
+            S.Clear();
+        }
+
+
+        private int Comparer(Word arg1, Word arg2)
+        {
+            if (arg1.Stoimost == arg2.Stoimost) return 0;
+            return arg1.Stoimost < arg2.Stoimost ? 1 : -1;
         }
 
         private void Search()
@@ -91,43 +172,14 @@ namespace SlovoedCheat
             
             Task.Run(() =>
             {
-                NewMethodNoRecurse(ct.Token);
+                S = new SearchTask(Matrix);
+                S.MethodOK += OnMethodOK;
+                S.Search(ct);
             }, ct.Token);
         }
+    }
 
-        private void NewMethodNoRecurse(CancellationToken ct)
-        {
-            NewMethod("", 4, 2, ct);
-            MethodOK?.Invoke(this, EventArgs.Empty);
-        }
-
-        private void NewMethod(string currentWord, int currentX, int currentY, CancellationToken ct)
-        {
-            if (ct.IsCancellationRequested) return;
-            if (currentX >= 5 || currentY >= 5 || currentX < 0|| currentY < 0) return;
-            if (currentWord.Length > 7) return;
-            var current = Matrix[currentX][currentY];
-            if (current.IsUsed) return;
-
-            current.IsUsed = true;
-            currentWord += current.Name;
-            if(currentWord.Length > 5) _words.Add(currentWord);
-            
-            var y1 = currentY + 1;
-            var ym1 = currentY - 1;
-            var x1 = currentX + 1;
-            var xm1 = currentX - 1;
-
-            NewMethod(currentWord, currentX, y1, ct);
-            NewMethod(currentWord, currentX, ym1, ct);
-            NewMethod(currentWord, x1, currentY, ct);
-            NewMethod(currentWord, xm1, currentY, ct);
-
-            NewMethod(currentWord, x1, y1, ct);
-            NewMethod(currentWord, xm1, y1, ct);
-            NewMethod(currentWord, x1, ym1, ct);
-            NewMethod(currentWord, xm1, ym1, ct);
-            current.IsUsed = false;
-        }
+    public class WordComparer : ReferenceEqualityComparer<Word>
+    {
     }
 }
