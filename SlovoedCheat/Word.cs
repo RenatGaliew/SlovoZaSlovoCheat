@@ -23,6 +23,7 @@ namespace SlovoedCheat
 
         public int Length => Name?.Length ?? 0;
         public int CCoef { get; set; } = 1;
+        public int UniqueKey { get; set; }
 
         public Word()
         {

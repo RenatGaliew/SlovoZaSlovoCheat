@@ -22,33 +22,115 @@
             <Button Command="{Binding SearchCommand}" Width="50" Height="30" VerticalAlignment="Top" Margin="20">START</Button>
             <Button Command="{Binding StopCommand}" Width="50" Height="30" VerticalAlignment="Top" Margin="20">STOP</Button>
         </StackPanel>
-        <ListBox Grid.Row="0" Grid.RowSpan="2" Grid.Column="2" ItemsSource="{Binding Words, Mode=OneWay}" SelectedItem="{Binding SelectedWord, Mode=TwoWay}">
-            <ListBox.ItemTemplate>
-                <DataTemplate DataType="{x:Type local:Word}">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="{Binding Name, Mode=OneWay}"/>
-                    </StackPanel>
-                </DataTemplate>
-            </ListBox.ItemTemplate>
-        </ListBox>
-        <ListView ItemsSource="{Binding MatrixView, Mode=OneWay}" Grid.Row="0" Grid.RowSpan="2" Grid.Column="1">
-            <ListView.ItemTemplate>
-                <DataTemplate DataType="{x:Type local:Character}">
-                    <Grid Margin="0">
-                        <Rectangle Width="49" Height="49" Fill="LightGray" Stroke="Black" StrokeThickness="1" Margin="0"/>
-                        <TextBlock Margin="0"
+        <Grid Grid.Row="0" Grid.RowSpan="2" Grid.Column="2">
+            <DataGrid ItemsSource="{Binding Words, Mode=OneWay}" AutoGenerateColumns="False">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="СЛОВО" Width="200" FontSize="24" Binding="{Binding Name}"/>
+                    <DataGridTextColumn Header="ОЧКИ" FontSize="24" Binding="{Binding Stoimost}"/>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Grid>
+        
+        <Grid VerticalAlignment="Stretch" HorizontalAlignment="Stretch" Background="White" Grid.Row="0" Grid.RowSpan="2" Grid.Column="1" Width="304">
+            <ListView ItemsSource="{Binding MatrixView, Mode=OneWay}" VerticalAlignment="Top" HorizontalAlignment="Left" >
+                <ListView.ItemTemplate>
+                    <DataTemplate DataType="{x:Type local:Character}">
+                        <Grid Margin="0">
+                            <Rectangle Width="49" Height="49" Fill="White" Stroke="White" StrokeThickness="1" Margin="0"/>
+                            <Grid>
+                                <Polygon Grid.Row="0" Grid.Column="0" Visibility="Visible">
+                                    <Polygon.Points>
+                                        <Point X="1" Y="1" />
+                                        <Point X="25" Y="1" />
+                                        <Point X="1" Y="25" />
+                                    </Polygon.Points>
+                                    <Polygon.Style>
+                                        <Style TargetType="Polygon">
+                                            <Style.Triggers>
+                                                <MultiDataTrigger>
+                                                    <MultiDataTrigger.Setters>
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </MultiDataTrigger.Setters>
+                                                    <MultiDataTrigger.Conditions>
+                                                        <Condition Binding="{Binding CKoef}" Value="1"/>
+                                                        <Condition Binding="{Binding XKoef}" Value="1"/>
+                                                    </MultiDataTrigger.Conditions>
+                                                </MultiDataTrigger>
+                                                <DataTrigger Binding="{Binding CKoef, Mode=OneWay}" Value="2">
+                                                    <Setter Property="Stroke" Value="#FF4B28"/>
+                                                    <Setter Property="Fill" Value="#FF4B28"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding XKoef, Mode=OneWay}" Value="2">
+                                                    <Setter Property="Stroke" Value="#FF4B28"/>
+                                                    <Setter Property="Fill" Value="#FF4B28"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding XKoef, Mode=OneWay}" Value="3">
+                                                    <Setter Property="Stroke" Value="#973DFD"/>
+                                                    <Setter Property="Fill" Value="#973DFD"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding CKoef, Mode=OneWay}" Value="3">
+                                                    <Setter Property="Stroke" Value="#973DFD"/>
+                                                    <Setter Property="Fill" Value="#973DFD"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Polygon.Style>
+                                </Polygon>
+                                <TextBlock Margin="3,0,0,0" Grid.Row="0" Grid.Column="0"
+                                       Foreground="White"
+                                       FontSize="11"
+                                       FontWeight="Bold"
+                                       Text="{Binding CKoef, Mode=OneWay, StringFormat={}c{0}}"
+                                       TextAlignment="Center"
+                                       HorizontalAlignment="Left"
+                                       VerticalAlignment="Top">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding CKoef, Mode=OneWay}" Value="1">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                                <TextBlock Margin="3,0,0,0" Grid.Row="0" Grid.Column="0"
+                                       Foreground="White"
+                                       FontSize="11"
+                                       FontWeight="Bold"
+                                       Text="{Binding XKoef, Mode=OneWay, StringFormat={}x{0}}" 
+                                       HorizontalAlignment="Left"
+                                       VerticalAlignment="Top">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding XKoef, Mode=OneWay}" Value="1">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </Grid>
+                            <TextBlock Margin="0"
+                                   Padding="0"
+                                   FontSize="24"
+                                   TextAlignment="Center"
+                                   Foreground="#4D4D4D"
                                    Text="{Binding Name, Mode=OneWay}"
                                    HorizontalAlignment="Center"
                                    VerticalAlignment="Center">
-                        </TextBlock>
-                    </Grid>
-                </DataTemplate>
-            </ListView.ItemTemplate>
-            <ListView.ItemsPanel>
-                <ItemsPanelTemplate>
-                    <WrapPanel Background="AntiqueWhite" Width="300" Margin="0"/>
-                </ItemsPanelTemplate>
-            </ListView.ItemsPanel>
-        </ListView>
+                            </TextBlock>
+                        </Grid>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+                <ListView.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel Background="#B6D4FF" Width="300" Height="300" Margin="0" VerticalAlignment="Top" ItemHeight="60" ItemWidth="60"/>
+                    </ItemsPanelTemplate>
+                </ListView.ItemsPanel>
+            </ListView>
+        </Grid>
+        
     </Grid>
 </Window>

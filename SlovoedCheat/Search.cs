@@ -41,7 +41,7 @@ namespace SlovoedCheat
                 currentWord.CCoef *= current.CKoef;
             }
 
-            if (currentWord.Length > 2)
+            if (currentWord.Length > 4 || currentWord.Stoimost * currentWord.CCoef > 30)
             {
                 _words.Add(new Word(currentWord.Name)
                 {

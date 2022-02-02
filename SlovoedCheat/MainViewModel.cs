@@ -52,7 +52,9 @@ namespace SlovoedCheat
             {
                 ct.Cancel();
             });
-            var str = "";
+            var str24= "у1ритьимыр3ынвнйродые4брбол2е"; // уриновый
+            var str = "глуим1э4схтииаео2ащнв3втняалс";
+            //str = str.ToUpper();
             Matrix = new[]
             {
                 new Character[5],
@@ -149,11 +151,19 @@ namespace SlovoedCheat
         {
             var d = dict;
             words.Sort(Comparer);
-            var wordsString = words.Select(x => x.Name);
-            var wordsList = wordsString.Intersect(d).Select(x => new Word(x));
+            var noDupl = words.Distinct(new DistinctItemComparer());
+            var dictStoim = noDupl.ToDictionary(word => word.Name, word => word.Stoimost);
+            //var wordsString = words.Select(x => x.Name);
+            var ttt = dictStoim.Keys.Intersect(d).Select(x => new Word(x)
+            {
+                Stoimost = dictStoim[x]
+            });
+            var t = ttt.ToList();
+
+            //var wordsList = dictStoim.Keys.Intersect(d).Select(x => new Word(x));
             App.Current.Dispatcher.Invoke(() =>
             {
-                Words.AddRange(wordsList);
+                Words.AddRange(ttt);
             });
 
             S.Clear();
@@ -179,7 +189,17 @@ namespace SlovoedCheat
         }
     }
 
-    public class WordComparer : ReferenceEqualityComparer<Word>
+    public class DistinctItemComparer : IEqualityComparer<Word>
     {
+
+        public bool Equals(Word x, Word y)
+        {
+            return x.Name == y.Name;
+        }
+
+        public int GetHashCode(Word obj)
+        {
+            return obj.Name.GetHashCode();
+        }
     }
 }
