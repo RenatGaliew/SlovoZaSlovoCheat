@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Catel.MVVM;
 
 namespace SlovoedCheat
 {
@@ -13,18 +15,23 @@ namespace SlovoedCheat
         public event EventHandler<List<Word>> MethodOK;
         public Character[][] Matrix;
         public List<Word> _words { get; private set; }
+        public List<Word> _wordsNine { get; private set; }
+        public static List<string> dict;
 
         public SearchTask(Character[][] matrix)
         {
             Matrix = matrix;
             _words = new List<Word>();
+            _wordsNine = new List<Word>(); 
+            dict = new List<string>();
+            dict.AddRange(File.ReadAllLines("russian.txt"));
         }
 
         private void NewMethodNoRecurse(int i, int j, CancellationToken ct)
         {
             NewMethod(new Word(),i , j, ct);
-        }
-
+        } 
+        
         private void NewMethod(Word currentWord, int currentX, int currentY, CancellationToken ct)
         {
             if (ct.IsCancellationRequested) return;
@@ -73,7 +80,7 @@ namespace SlovoedCheat
                 currentWord.CCoef /= current.CKoef;
             current.IsUsed = false;
         }
-
+        
         public void Search(CancellationTokenSource cancellationTokenSource)
         {
             for (int k = 0; k < 5; k++)

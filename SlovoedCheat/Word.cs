@@ -13,19 +13,12 @@ namespace SlovoedCheat
     public class Word
     {
         public string Name { get; set; }
-        public int _stoimost { get; set; }
+        private int _stoimost { get; set; }
 
         public int Stoimost
         {
             get => _stoimost;
-            set
-            {
-                _stoimost = value;
-                if (_stoimost < 0)
-                {
-
-                }
-            }
+            set => _stoimost = value;
         }
 
         public int Length => Name?.Length ?? 0;

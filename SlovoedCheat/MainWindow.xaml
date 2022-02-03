@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:SlovoedCheat"
+        xmlns:b="http://schemas.microsoft.com/xaml/behaviors"
         mc:Ignorable="d"
         x:Name="Main"
         d:DataContext="{d:DesignInstance local:MainViewModel}"
@@ -23,9 +24,29 @@
             <Button Command="{Binding SearchCommand}" Width="50" Height="30" VerticalAlignment="Top" Margin="20">ПОИСК</Button>
             <Button Command="{Binding StopCommand}" Width="50" Height="30" VerticalAlignment="Top" Margin="20">СТОП</Button>
             <Button Command="{Binding StartMouseMoveCommand}" Width="50" Height="30" VerticalAlignment="Top" Margin="20">ВВОД</Button>
+            <TextBlock Text="{Binding CurrentTime, Mode=OneWay, StringFormat={}Время: {0}}" HorizontalAlignment="Center" ></TextBlock>
         </StackPanel>
         <Grid Grid.Row="0" Grid.RowSpan="2" Grid.Column="2">
-            <DataGrid ItemsSource="{Binding Words, Mode=OneWay}" AutoGenerateColumns="False" SelectedItem="{Binding SelectedWord, Mode=TwoWay}">
+            <DataGrid ItemsSource="{Binding Words, Mode=OneWay}" AutoGenerateColumns="False" 
+                      SelectedItem="{Binding SelectedWord, Mode=TwoWay}">
+                <DataGrid.RowStyle>
+                    <Style TargetType="DataGridRow">
+                        <Style.Triggers>
+                            <Trigger Property="IsSelected"
+                                     Value="True">
+                                <Setter Property="BorderBrush"
+                                        Value="LawnGreen" />
+                                <Setter Property="BorderThickness"
+                                        Value="2" />
+                                <Setter Property="Opacity"
+                                        Value="0.8" />
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </DataGrid.RowStyle>
+                <b:Interaction.Behaviors>
+                    <local:ScrollToSelectedListBoxItemBehaviour />
+                </b:Interaction.Behaviors>
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="СЛОВО" Width="200" FontSize="24" Binding="{Binding Name}"/>
                     <DataGridTextColumn Header="ОЧКИ" FontSize="24" Binding="{Binding Stoimost}"/>

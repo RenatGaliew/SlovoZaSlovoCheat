@@ -10,6 +10,7 @@ using System.Timers;
 using System.Windows.Media;
 using Catel.Collections;
 using Catel.Data;
+using Catel.IoC;
 using Catel.MVVM;
 using Point = System.Drawing.Point;
 using Timer = System.Timers.Timer;
@@ -37,11 +38,17 @@ namespace SlovoedCheat
         public static readonly PropertyData MatrixViewProperty = RegisterProperty<MainViewModel, ObservableCollection<Character>>(x => x.MatrixView);
         public static readonly PropertyData SelectedWordProperty = RegisterProperty<MainViewModel, Word>(x => x.SelectedWord);
         public static readonly PropertyData SourceTextProperty = RegisterProperty<MainViewModel, string>(x => x.SourceText);
+        public static readonly PropertyData CurrentTimeProperty = RegisterProperty<MainViewModel, string>(x => x.CurrentTime);
 
         public ObservableCollection<Character> MatrixView
         {
             get => GetValue<ObservableCollection<Character>>(MatrixViewProperty);
             set => SetValue(MatrixViewProperty, value);
+        }
+        public string CurrentTime
+        {
+            get => GetValue<string>(CurrentTimeProperty);
+            set => SetValue(CurrentTimeProperty, value);
         }
 
         public ObservableCollection<Word> Words { get; private set; }
@@ -70,6 +77,7 @@ namespace SlovoedCheat
         }
         
         public DateTime EndTime { get; set; }
+
 
         [DllImport("user32.dll", SetLastError = true)]
         static extern uint SendInput(uint cInputs, INPUT input, int size);
@@ -113,7 +121,7 @@ namespace SlovoedCheat
             StartMouseMoveCommand = new Command(() =>
             {
                 ctInput = new CancellationTokenSource();
-                StartMove(ctInput.Token);
+                StartMove(ctInput.Token, Words);
             });
             var str24= "ларчйосьфетоажлсрьияидздя"; // уриновый
            
@@ -121,10 +129,13 @@ namespace SlovoedCheat
             dict.AddRange(File.ReadAllLines("russian.txt"));
             WindowInput = new WondowInputMouse();
             WindowInput.Show();
+            CurrentTime = "00:00";
+            SourceText = "";
         }
 
         private void StartTimer()
         {
+            t?.Stop();
             t = new Timer(1000);
             t.Start();
             t.Elapsed += TOnElapsed;
@@ -133,9 +144,11 @@ namespace SlovoedCheat
 
         private void TOnElapsed(object sender, ElapsedEventArgs e)
         {
+            var timeSpan = EndTime - DateTime.Now;
+            CurrentTime = timeSpan.ToString(@"m\:ss");
             if (e.SignalTime >= EndTime)
             {
-                ctInput.Cancel();
+                ctInput?.Cancel(); 
                 t.Stop();
             }
         }
@@ -145,7 +158,7 @@ namespace SlovoedCheat
             
         }
 
-        private void StartMove(CancellationToken token)
+        private void StartMove(CancellationToken token, IReadOnlyList<Word> words)
         {
             var startPositionX = (int)WindowInput.Left + (int)WindowInput.PolygonWords.Points[0].X;
             var startPositionY = (int)WindowInput.Top + (int)WindowInput.PolygonWords.Points[0].Y;
@@ -169,8 +182,12 @@ namespace SlovoedCheat
                     try
                     {
                         await Task.Delay(500, token);
-                        foreach (var word in Words)
+                        foreach (var word in words.ToList())
                         {
+                            App.Current.Dispatcher.Invoke(() =>
+                            {
+                                SelectedWord = word;
+                            });
                             if (token.IsCancellationRequested) return;
 
                             int i = 0;
@@ -187,7 +204,7 @@ namespace SlovoedCheat
                                 i++;
                             }
                             DoClickMouse(0x4);
-                            if (i < 4)
+                            if (i < 3)
                             {
                                 System.Windows.Forms.Cursor.Position = new Point(xClickOK, yClickOK);
                                 await Task.Delay(100, token);
@@ -213,17 +230,21 @@ namespace SlovoedCheat
             base.OnPropertyChanged(e);
             if(e.PropertyName == nameof(SelectedWord))
             {
-                foreach (var character in MatrixView)
+                if (SelectedWord != null)
                 {
-                    character.Brush = new SolidColorBrush(System.Windows.Media.Color.FromArgb(255, 255, 255, 255));
-                }
+                    foreach (var character in MatrixView)
+                    {
+                        character.Brush = new SolidColorBrush(System.Windows.Media.Color.FromArgb(255, 255, 255, 255));
+                    }
 
-                int t = 255;
-                int tt = t / (SelectedWord.Points.Count + 1);
-                foreach (var selectedWordPoint in SelectedWord.Points)
-                {
-                    MatrixView[selectedWordPoint.X * 5 + selectedWordPoint.Y].Brush = new SolidColorBrush(System.Windows.Media.Color.FromArgb((byte)t, 128, 255, 0));
-                    t -= tt;
+                    int t = 255;
+                    int tt = t / (SelectedWord.Points.Count + 1);
+                    foreach (var selectedWordPoint in SelectedWord.Points)
+                    {
+                        MatrixView[selectedWordPoint.X * 5 + selectedWordPoint.Y].Brush =
+                            new SolidColorBrush(System.Windows.Media.Color.FromArgb((byte) t, 128, 255, 0));
+                        t -= tt;
+                    }
                 }
             }
         }
@@ -248,8 +269,7 @@ namespace SlovoedCheat
 
             S.Clear();
         }
-
-
+        
         private int Comparer(Word arg1, Word arg2)
         {
             if (arg1.Stoimost == arg2.Stoimost) return 0;
@@ -259,8 +279,7 @@ namespace SlovoedCheat
         private void Search()
         {
             ct = new CancellationTokenSource();
-
-            var str = SourceText;
+            var str = SourceText.Length == 0 ? "ларчйосьфетоажлсрьияидздя" : SourceText;
 
             Matrix = new[]
             {
