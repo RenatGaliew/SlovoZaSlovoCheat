@@ -1,0 +1,44 @@
+﻿<Window x:Class="SlovoedCheat.WondowInputMouse"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        Topmost="True"
+        WindowStyle="None"
+        AllowsTransparency="True" 
+        xmlns:local="clr-namespace:SlovoedCheat"
+        mc:Ignorable="d"
+        MouseDown="Window_MouseDown" 
+        Title="Поле ввода букв" Height="600" Width="825">
+    <WindowChrome.WindowChrome>
+        <WindowChrome     
+            CaptionHeight="1"  
+            CornerRadius ="0"
+            ResizeBorderThickness="4"         
+            GlassFrameThickness="0">
+        </WindowChrome>
+    </WindowChrome.WindowChrome>
+    <Window.Background>
+        <SolidColorBrush Color="White" Opacity="0.7"/>
+    </Window.Background>
+    <Grid>
+        <Image Source="Resources/GameWindow.png" Opacity="0.3" />
+
+        <Polygon Fill="Aquamarine" Opacity="0.2" x:Name="PolygonWords">
+            <Polygon.Points>
+                <Point X="248" Y="160" />
+                <Point X="575" Y="160" />
+                <Point X="575" Y="490" />
+                <Point X="248" Y="490" />
+            </Polygon.Points>
+        </Polygon>
+        <Polygon Fill="LawnGreen" Opacity="0.2" x:Name="PolygonButton">
+            <Polygon.Points>
+                <Point X="680" Y="77" />
+                <Point X="725" Y="77" />
+                <Point X="725" Y="122" />
+                <Point X="680" Y="122" />
+            </Polygon.Points>
+        </Polygon>
+    </Grid>
+</Window>

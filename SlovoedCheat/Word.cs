@@ -1,5 +1,12 @@
-﻿using System.Reflection;
+﻿using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Drawing;
+using System.Reflection;
+using System.Windows.Documents;
+using System.Windows.Media;
+using Catel.Data;
 using Catel.MVVM;
+using Brush = System.Drawing.Brush;
 
 namespace SlovoedCheat
 {
@@ -24,13 +31,16 @@ namespace SlovoedCheat
         public int Length => Name?.Length ?? 0;
         public int CCoef { get; set; } = 1;
         public int UniqueKey { get; set; }
+        public List<Point> Points { get; set; }
 
         public Word()
         {
+            Points = new List<Point>();
             Name = "";
         }
         public Word(string s)
         {
+            Points = new List<Point>();
             Name = s;
         }
         public static Word operator +(Word s1, Word s2)
@@ -52,10 +62,17 @@ namespace SlovoedCheat
         }
     }
 
-    public class Character
+    public class Character : ViewModelBase
     {
+        public static readonly PropertyData BrushProperty = RegisterProperty<Character, SolidColorBrush>(x => x.Brush);
         public string Name { get; set; }
+        public SolidColorBrush Brush
+        {
+            get => GetValue<SolidColorBrush>(BrushProperty);
+            set => SetValue(BrushProperty, value);
+        }
         public bool IsUsed { get; set; }
+
         public int XKoef { get; set; } = 1;
         public int CKoef { get; set; } = 1;
         public int Index { get; set; } = 1;

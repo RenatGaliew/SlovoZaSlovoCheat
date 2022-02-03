@@ -18,12 +18,14 @@
             <ColumnDefinition/>
             <ColumnDefinition/>
         </Grid.ColumnDefinitions>
-        <StackPanel>
-            <Button Command="{Binding SearchCommand}" Width="50" Height="30" VerticalAlignment="Top" Margin="20">START</Button>
-            <Button Command="{Binding StopCommand}" Width="50" Height="30" VerticalAlignment="Top" Margin="20">STOP</Button>
+        <StackPanel Grid.RowSpan="2">
+            <Button Command="{Binding StartTimeCommand}" Width="60" Height="30" VerticalAlignment="Top" Margin="20">2 минуты</Button>
+            <Button Command="{Binding SearchCommand}" Width="50" Height="30" VerticalAlignment="Top" Margin="20">ПОИСК</Button>
+            <Button Command="{Binding StopCommand}" Width="50" Height="30" VerticalAlignment="Top" Margin="20">СТОП</Button>
+            <Button Command="{Binding StartMouseMoveCommand}" Width="50" Height="30" VerticalAlignment="Top" Margin="20">ВВОД</Button>
         </StackPanel>
         <Grid Grid.Row="0" Grid.RowSpan="2" Grid.Column="2">
-            <DataGrid ItemsSource="{Binding Words, Mode=OneWay}" AutoGenerateColumns="False">
+            <DataGrid ItemsSource="{Binding Words, Mode=OneWay}" AutoGenerateColumns="False" SelectedItem="{Binding SelectedWord, Mode=TwoWay}">
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="СЛОВО" Width="200" FontSize="24" Binding="{Binding Name}"/>
                     <DataGridTextColumn Header="ОЧКИ" FontSize="24" Binding="{Binding Stoimost}"/>
@@ -31,12 +33,28 @@
             </DataGrid>
         </Grid>
         
-        <Grid VerticalAlignment="Stretch" HorizontalAlignment="Stretch" Background="White" Grid.Row="0" Grid.RowSpan="2" Grid.Column="1" Width="304">
+        <StackPanel VerticalAlignment="Stretch" HorizontalAlignment="Stretch" Background="White" Grid.Row="0" Grid.RowSpan="2" Grid.Column="1" Width="304">
             <ListView ItemsSource="{Binding MatrixView, Mode=OneWay}" VerticalAlignment="Top" HorizontalAlignment="Left" >
                 <ListView.ItemTemplate>
                     <DataTemplate DataType="{x:Type local:Character}">
                         <Grid Margin="0">
-                            <Rectangle Width="49" Height="49" Fill="White" Stroke="White" StrokeThickness="1" Margin="0"/>
+
+                            <Rectangle Width="49" Height="49" StrokeThickness="1" Fill="{Binding Brush, Mode=OneWay}" Stroke="{Binding Brush, Mode=OneWay}" Margin="0">
+                                <!--<Rectangle.Style>
+                                    <Style TargetType="{x:Type Rectangle}">
+                                        <Setter Property="Fill" Value="White"/>
+                                        <Setter Property="Stroke" Value="White"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsUsedInView, Mode=OneWay}" Value="True">
+                                                <DataTrigger.Setters>
+                                                    <Setter Property="Fill" Value="LimeGreen"/>
+                                                    <Setter Property="Stroke" Value="LimeGreen"/>
+                                                </DataTrigger.Setters>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Rectangle.Style>-->
+                            </Rectangle>
                             <Grid>
                                 <Polygon Grid.Row="0" Grid.Column="0" Visibility="Visible">
                                     <Polygon.Points>
@@ -130,7 +148,8 @@
                     </ItemsPanelTemplate>
                 </ListView.ItemsPanel>
             </ListView>
-        </Grid>
+            <TextBox Text="{Binding SourceText, Mode=TwoWay}" Background="Aqua"></TextBox>
+        </StackPanel>
         
     </Grid>
 </Window>

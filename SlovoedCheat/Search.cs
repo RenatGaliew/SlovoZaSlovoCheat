@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -28,24 +29,26 @@ namespace SlovoedCheat
         {
             if (ct.IsCancellationRequested) return;
             if (currentX >= 5 || currentY >= 5 || currentX < 0 || currentY < 0) return;
-            if (currentWord.Length > 9) return;
+            if (currentWord.Length > 8) return;
             var current = Matrix[currentX][currentY];
             if (current.IsUsed) return;
 
             current.IsUsed = true;
             current.Index = currentWord.Length + 1;
             currentWord.Stoimost = currentWord.Stoimost + current.XKoef * current.Index;
+            currentWord.Points.Add(new Point(currentX, currentY));
             currentWord += current;
             if (current.CKoef != 1)
             {
                 currentWord.CCoef *= current.CKoef;
             }
 
-            if (currentWord.Length > 4 || currentWord.Stoimost * currentWord.CCoef > 30)
+            if (currentWord.Length > 1)
             {
                 _words.Add(new Word(currentWord.Name)
                 {
-                    Stoimost = currentWord.Stoimost * currentWord.CCoef
+                    Stoimost = currentWord.Stoimost * currentWord.CCoef,
+                    Points = new List<Point>(currentWord.Points)
                 });
             }
 
@@ -65,6 +68,7 @@ namespace SlovoedCheat
             NewMethod(currentWord, xm1, ym1, ct);
             currentWord = currentWord - 1;
             currentWord.Stoimost = currentWord.Stoimost - current.XKoef * current.Index;
+            currentWord.Points.RemoveAt(currentWord.Length);
             if (current.CKoef != 1)
                 currentWord.CCoef /= current.CKoef;
             current.IsUsed = false;
