@@ -1,17 +1,22 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Drawing;
+using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
+using System.Windows.Forms;
 using System.Windows.Media;
 using Catel.Collections;
 using Catel.Data;
 using Catel.IoC;
 using Catel.MVVM;
+using Color = System.Drawing.Color;
+using Form = System.Windows.Forms.Form;
 using Point = System.Drawing.Point;
 using Timer = System.Timers.Timer;
 
@@ -57,6 +62,7 @@ namespace SlovoedCheat
         public Command StartTimeCommand { get; set; }
         public Command StopCommand { get; set; }
         public Command StartMouseMoveCommand { get; set; }
+        public Command GetMatrixMoveCommand { get; set; }
         private CancellationTokenSource ct;
         private CancellationTokenSource ctInput;
         private List<string> dict;
@@ -124,13 +130,104 @@ namespace SlovoedCheat
                 StartMove(ctInput.Token, Words);
             });
             var str24= "ларчйосьфетоажлсрьияидздя"; // уриновый
-           
-            dict = new List<string>();
+            GetMatrixMoveCommand = new Command(Execute);
+             dict = new List<string>();
             dict.AddRange(File.ReadAllLines("russian.txt"));
             WindowInput = new WondowInputMouse();
             WindowInput.Show();
             CurrentTime = "00:00";
             SourceText = "";
+        }
+
+        private void Execute()
+        {
+            Matrix = new[]
+            {
+                new Character[5],
+                new Character[5],
+                new Character[5],
+                new Character[5],
+                new Character[5],
+            };
+            MatrixView = new ObservableCollection<Character>();
+
+            var startPositionX = (int)WindowInput.Left + (int)WindowInput.PolygonWords.Points[0].X;
+            var startPositionY = (int)WindowInput.Top + (int)WindowInput.PolygonWords.Points[0].Y;
+            var height = (int)WindowInput.PolygonWords.Points[3].Y - (int)WindowInput.PolygonWords.Points[0].Y;
+            var width = (int)WindowInput.PolygonWords.Points[1].X - (int)WindowInput.PolygonWords.Points[0].X;
+            int h = (int)height / 5;
+            int w = (int)width / 5;
+            var size = new Size(w, h);
+            Dictionary<int, int> dictColorChar = new Dictionary<int, int>();
+            var t = 0;
+            for (int i = 0; i < 5; i++)
+            {
+                for (int j = 0; j < 5; j++)
+                {
+                    int xStart = startPositionX + w * j;
+                    int yStart = startPositionY + h * i;
+                    using (Bitmap bitmap = new Bitmap(w, h))
+                    {
+                        using (Graphics g = Graphics.FromImage(bitmap))
+                        {
+                            g.CopyFromScreen(new Point(xStart, yStart), new Point(0, 0), size);
+                        }
+
+                        var countGray = 0;
+                        for (int k = 0; k < w; k++)
+                        {
+                            for (int l = 0; l < h; l++)
+                            {
+                                var pixel = bitmap.GetPixel(k, l);
+                                if (pixel.R == pixel.G && pixel.R == pixel.B && pixel.R != 255) 
+                                { 
+                                    countGray++;
+                                    bitmap.SetPixel(k, l, Color.Black);
+                                }
+                                else
+                                {
+                                    var gray = (pixel.R + pixel.G + pixel.B)/3;
+                                    bitmap.SetPixel(k, l, Color.FromArgb(255, gray, gray, gray));
+                                }
+                            }
+                        }
+
+                        string s = "";
+                        if (countGray == 344 || countGray == 338) s = "к";
+                        if (countGray == 362) s = "о"; 
+                        if (countGray == 412) s = "в";
+                        if (countGray == 346 || countGray == 311) s = "е"; 
+                        if (countGray == 291 || countGray == 295) s = "р";
+                        if (countGray == 312 || countGray == 312 || countGray == 322 || countGray == 310) s = "а";
+                        if (countGray == 486) s = "м";
+                        if (countGray == 316) s = "л";
+                        if (countGray == 202) s = "т";
+                        if (countGray == 320) s = "ь";
+                        if (countGray == 332) s = "н";
+                        if (countGray == 385) s = "и";
+                        if (countGray == 345) s = "п";
+                        if (countGray == 321) s = "с";
+
+                        Matrix[i][j] = new Character(s);
+
+                        dictColorChar.Add(t, countGray);
+                        t++;
+                        bitmap.Save($"test{i}{j}.jpg", ImageFormat.Jpeg);
+                    }
+                }
+            }
+
+            foreach (var value in Matrix)
+            {
+                foreach (var character in value)
+                {
+                    character.Brush = new SolidColorBrush(System.Windows.Media.Color.FromArgb(255, 255, 255, 255));
+                    MatrixView.Add(character);
+                }
+            }
+
+
+            int y = 0;
         }
 
         private void StartTimer()
