@@ -6,10 +6,10 @@ using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
-using System.Windows.Forms;
 using System.Windows.Media;
 using Catel.Collections;
 using Catel.Data;
@@ -44,6 +44,7 @@ namespace SlovoedCheat
         public static readonly PropertyData SelectedWordProperty = RegisterProperty<MainViewModel, Word>(x => x.SelectedWord);
         public static readonly PropertyData SourceTextProperty = RegisterProperty<MainViewModel, string>(x => x.SourceText);
         public static readonly PropertyData CurrentTimeProperty = RegisterProperty<MainViewModel, string>(x => x.CurrentTime);
+        public static readonly PropertyData NewWordProperty = RegisterProperty<MainViewModel, string>(x => x.NewWord);
 
         public ObservableCollection<Character> MatrixView
         {
@@ -63,6 +64,8 @@ namespace SlovoedCheat
         public Command StopCommand { get; set; }
         public Command StartMouseMoveCommand { get; set; }
         public Command GetMatrixMoveCommand { get; set; }
+        public Command AddWordCommand { get; set; }
+        public Command<Word> RemoveWordCommand { get; set; }
         private CancellationTokenSource ct;
         private CancellationTokenSource ctInput;
         private List<string> dict;
@@ -80,6 +83,12 @@ namespace SlovoedCheat
         {
             get => GetValue<string>(SourceTextProperty);
             set => SetValue(SourceTextProperty, value);
+        }
+        
+        public string NewWord
+        {
+            get => GetValue<string>(NewWordProperty);
+            set => SetValue(NewWordProperty, value);
         }
         
         public DateTime EndTime { get; set; }
@@ -129,6 +138,9 @@ namespace SlovoedCheat
                 ctInput = new CancellationTokenSource();
                 StartMove(ctInput.Token, Words);
             });
+            AddWordCommand = new Command(AddNewWord);
+            RemoveWordCommand = new Command<Word>(RemoveWord);
+
             var str24= "ларчйосьфетоажлсрьияидздя"; // уриновый
             GetMatrixMoveCommand = new Command(Execute);
              dict = new List<string>();
@@ -137,6 +149,28 @@ namespace SlovoedCheat
             WindowInput.Show();
             CurrentTime = "00:00";
             SourceText = "";
+            
+        }
+
+        private void RemoveWord(Word word)
+        {
+            if (!string.IsNullOrEmpty(word.Name))
+            {
+                Console.WriteLine();
+                dict.Remove(word.Name);
+                Words.Remove(word);
+            }
+        }
+
+        private void AddNewWord()
+        {
+            if (!string.IsNullOrEmpty(NewWord))
+            {
+                //saveWord
+                File.WriteAllLines("../../../russian.txt",new List<string> { NewWord } );
+                dict.Add(NewWord);
+                NewWord = "";
+            }
         }
 
         private void Execute()
@@ -274,6 +308,7 @@ namespace SlovoedCheat
             WindowInput.Close();
             try
             {
+                var position = System.Windows.Forms.Cursor.Position;
                 Task.Run(async () =>
                 {
                     try
@@ -281,6 +316,9 @@ namespace SlovoedCheat
                         await Task.Delay(500, token);
                         foreach (var word in words.ToList())
                         {
+                            if (Math.Abs(position.X - System.Windows.Forms.Cursor.Position.X) > 10 
+                                || Math.Abs(position.Y - System.Windows.Forms.Cursor.Position.Y) > 10)
+                                break;
                             App.Current.Dispatcher.Invoke(() =>
                             {
                                 SelectedWord = word;
@@ -290,11 +328,16 @@ namespace SlovoedCheat
                             int i = 0;
                             foreach (var wordPoint in word.Points)
                             {
+                                if (Math.Abs(position.X - System.Windows.Forms.Cursor.Position.X) > 10
+                                    || Math.Abs(position.Y - System.Windows.Forms.Cursor.Position.Y) > 10)
+                                    break;
+
                                 if (token.IsCancellationRequested) return;
                                 int x = startPositionX + w * wordPoint.Y + (w / 2);
                                 int y = startPositionY + h * wordPoint.X + (h / 2);
                                 
                                 System.Windows.Forms.Cursor.Position = new Point(x, y);
+                                position = System.Windows.Forms.Cursor.Position;
                                 await Task.Delay(100, token);
                                 if (i == 0)
                                     DoClickMouse(0x2);
@@ -303,7 +346,8 @@ namespace SlovoedCheat
                             DoClickMouse(0x4);
                             if (i < 3)
                             {
-                                System.Windows.Forms.Cursor.Position = new Point(xClickOK, yClickOK);
+                                System.Windows.Forms.Cursor.Position = new Point(xClickOK, yClickOK); 
+                                position = System.Windows.Forms.Cursor.Position;
                                 await Task.Delay(100, token);
                                 DoClickMouse(0x2);
                                 DoClickMouse(0x4);
