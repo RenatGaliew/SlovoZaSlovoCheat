@@ -25,11 +25,17 @@
             <Button Command="{Binding StopCommand}" Width="50" Height="30" VerticalAlignment="Top" Margin="20">СТОП</Button>
             <Button Command="{Binding StartMouseMoveCommand}" Width="50" Height="30" VerticalAlignment="Top" Margin="20">ВВОД</Button>
             <Button Command="{Binding GetMatrixMoveCommand}" Width="50" Height="30" VerticalAlignment="Top" Margin="20">Считать</Button>
+            <Button Command="{Binding DeleteWordsCommand}" Width="82" Height="49" Margin="20">Удалить слова</Button>
             <TextBlock Text="{Binding CurrentTime, Mode=OneWay, StringFormat={}Время: {0}}" HorizontalAlignment="Center" ></TextBlock>
         </StackPanel>
         <Grid Grid.Row="0" Grid.RowSpan="2" Grid.Column="2">
-            <StackPanel HorizontalAlignment="Stretch">
-                <DataGrid ItemsSource="{Binding Words, Mode=OneWay}" AutoGenerateColumns="False" 
+            <Grid HorizontalAlignment="Stretch" VerticalAlignment="Top">
+                <Grid.RowDefinitions>
+                    <RowDefinition/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <DataGrid ItemsSource="{Binding Words, Mode=OneWay}" AutoGenerateColumns="False"
+                          VerticalAlignment="Stretch"
                           SelectedItem="{Binding SelectedWord, Mode=TwoWay}">
                     <DataGrid.RowStyle>
                         <Style TargetType="DataGridRow">
@@ -54,14 +60,15 @@
                         <DataGridTextColumn Header="ОЧКИ" FontSize="24" Binding="{Binding Stoimost}"/>
                         <DataGridTemplateColumn Header="Удаление">
                             <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <Button Command="{Binding RemoveWordCommand, Mode=OneWay}" CommandParameter="{Binding Mode=OneWay}">Remove</Button>
+                                <DataTemplate DataType="{x:Type local:Word}">
+                                    <Button Command="{Binding ElementName=Main, Path=DataContext.RemoveWordCommand, Mode=OneWay}" 
+                                            CommandParameter="{Binding Mode=OneWay}">Remove</Button>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
                     </DataGrid.Columns>
                 </DataGrid>
-                <Grid HorizontalAlignment="Stretch" Background="Beige">
+                <Grid Grid.Row="1" HorizontalAlignment="Stretch" Background="Beige" VerticalAlignment="Bottom">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition/>
@@ -71,7 +78,7 @@
                     <TextBox Grid.Column="1" Text="{Binding NewWord, Mode=TwoWay}" TextAlignment="Center" MaxLines="1" HorizontalAlignment="Stretch" ></TextBox>
                     <Button Grid.Column="2" Command="{Binding AddWordCommand, Mode=OneWay}" Margin="10,0" Width="50">Add</Button>
                 </Grid>
-            </StackPanel>
+            </Grid>
         </Grid>
         
         <StackPanel VerticalAlignment="Stretch" HorizontalAlignment="Stretch" Background="White" Grid.Row="0" Grid.RowSpan="2" Grid.Column="1" Width="304">
@@ -81,20 +88,7 @@
                         <Grid Margin="0">
 
                             <Rectangle Width="49" Height="49" StrokeThickness="1" Fill="{Binding Brush, Mode=OneWay}" Stroke="{Binding Brush, Mode=OneWay}" Margin="0">
-                                <!--<Rectangle.Style>
-                                    <Style TargetType="{x:Type Rectangle}">
-                                        <Setter Property="Fill" Value="White"/>
-                                        <Setter Property="Stroke" Value="White"/>
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsUsedInView, Mode=OneWay}" Value="True">
-                                                <DataTrigger.Setters>
-                                                    <Setter Property="Fill" Value="LimeGreen"/>
-                                                    <Setter Property="Stroke" Value="LimeGreen"/>
-                                                </DataTrigger.Setters>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Rectangle.Style>-->
+                               
                             </Rectangle>
                             <Grid>
                                 <Polygon Grid.Row="0" Grid.Column="0" Visibility="Visible">

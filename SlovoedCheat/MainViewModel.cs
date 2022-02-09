@@ -22,22 +22,6 @@ using Timer = System.Timers.Timer;
 
 namespace SlovoedCheat
 {
-    [StructLayout(LayoutKind.Sequential)]
-    struct MOUSEINPUT
-    {
-        int dx;
-        int dy;
-        int mouseData;
-        public int dwFlags;
-        int time;
-        IntPtr dwExtraInfo;
-    }
-    struct INPUT
-    {
-        public uint dwType;
-        public MOUSEINPUT mi;
-    }
-
     public class MainViewModel : ViewModelBase
     {
         public static readonly PropertyData MatrixViewProperty = RegisterProperty<MainViewModel, ObservableCollection<Character>>(x => x.MatrixView);
@@ -66,6 +50,7 @@ namespace SlovoedCheat
         public Command GetMatrixMoveCommand { get; set; }
         public Command AddWordCommand { get; set; }
         public Command<Word> RemoveWordCommand { get; set; }
+        public Command DeleteWordsCommand { get; }
         private CancellationTokenSource ct;
         private CancellationTokenSource ctInput;
         private List<string> dict;
@@ -140,10 +125,10 @@ namespace SlovoedCheat
             });
             AddWordCommand = new Command(AddNewWord);
             RemoveWordCommand = new Command<Word>(RemoveWord);
-
+            DeleteWordsCommand = new Command(DeleteWords);
             var str24= "ларчйосьфетоажлсрьияидздя"; // уриновый
             GetMatrixMoveCommand = new Command(Execute);
-             dict = new List<string>();
+            dict = new List<string>();
             dict.AddRange(File.ReadAllLines("russian.txt"));
             WindowInput = new WondowInputMouse();
             WindowInput.Show();
@@ -152,11 +137,24 @@ namespace SlovoedCheat
             
         }
 
+        private void DeleteWords()
+        {
+            var toDelete = File.ReadAllLines("../../../ToDelete.txt");
+            var words = File.ReadAllLines("russian.txt").ToList();
+            foreach (var s in toDelete)
+            {
+                words.Remove(s);
+            }
+            File.WriteAllLines("../../../russian.txt", words);
+            File.Delete("../../../ToDelete.txt");
+        }
+
         private void RemoveWord(Word word)
         {
             if (!string.IsNullOrEmpty(word.Name))
             {
                 Console.WriteLine();
+                File.AppendAllLines("../../../ToDelete.txt", new List<string> { word.Name});
                 dict.Remove(word.Name);
                 Words.Remove(word);
             }
@@ -167,7 +165,7 @@ namespace SlovoedCheat
             if (!string.IsNullOrEmpty(NewWord))
             {
                 //saveWord
-                File.WriteAllLines("../../../russian.txt",new List<string> { NewWord } );
+                File.AppendAllLines("../../../russian.txt", new List<string> { NewWord });
                 dict.Add(NewWord);
                 NewWord = "";
             }
@@ -213,18 +211,18 @@ namespace SlovoedCheat
                             for (int l = 0; l < h; l++)
                             {
                                 var pixel = bitmap.GetPixel(k, l);
-                                if (pixel.R == pixel.G && pixel.R == pixel.B && pixel.R != 255) 
-                                { 
-                                    countGray++;
-                                    bitmap.SetPixel(k, l, Color.Black);
-                                }
-                                else
-                                {
+                                //if (pixel.R == pixel.G && pixel.R == pixel.B && pixel.R != 255) 
+                                //{ 
+                                 //   countGray++;
+                                   // bitmap.SetPixel(k, l, Color.Black);
+                                //}
+                               // else
+                                //{
                                     var gray = (pixel.R + pixel.G + pixel.B)/3;
                                     bitmap.SetPixel(k, l, Color.FromArgb(255, gray, gray, gray));
-                                }
+                                //}
                             }
-                        }
+                        }/*
 
                         string s = "";
                         if (countGray == 344 || countGray == 338) s = "к";
@@ -241,24 +239,24 @@ namespace SlovoedCheat
                         if (countGray == 385) s = "и";
                         if (countGray == 345) s = "п";
                         if (countGray == 321) s = "с";
+                        */
+                        //Matrix[i][j] = new Character(s);
 
-                        Matrix[i][j] = new Character(s);
-
-                        dictColorChar.Add(t, countGray);
-                        t++;
-                        bitmap.Save($"test{i}{j}.jpg", ImageFormat.Jpeg);
+                        //dictColorChar.Add(t, countGray);
+                        //t++;
+                        bitmap.Save($"{Guid.NewGuid():N}.jpg", ImageFormat.Jpeg);
                     }
                 }
             }
 
-            foreach (var value in Matrix)
+            /*foreach (var value in Matrix)
             {
                 foreach (var character in value)
                 {
                     character.Brush = new SolidColorBrush(System.Windows.Media.Color.FromArgb(255, 255, 255, 255));
                     MatrixView.Add(character);
                 }
-            }
+            }*/
 
 
             int y = 0;
@@ -512,20 +510,6 @@ namespace SlovoedCheat
                     index++;
                 }
             }
-        }
-    }
-
-    public class DistinctItemComparer : IEqualityComparer<Word>
-    {
-
-        public bool Equals(Word x, Word y)
-        {
-            return x.Name == y.Name;
-        }
-
-        public int GetHashCode(Word obj)
-        {
-            return obj.Name.GetHashCode();
         }
     }
 }
