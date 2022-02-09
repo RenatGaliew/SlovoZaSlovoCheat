@@ -27,31 +27,50 @@
             <TextBlock Text="{Binding CurrentTime, Mode=OneWay, StringFormat={}Время: {0}}" HorizontalAlignment="Center" ></TextBlock>
         </StackPanel>
         <Grid Grid.Row="0" Grid.RowSpan="2" Grid.Column="2">
-            <DataGrid ItemsSource="{Binding Words, Mode=OneWay}" AutoGenerateColumns="False" 
-                      SelectedItem="{Binding SelectedWord, Mode=TwoWay}">
-                <DataGrid.RowStyle>
-                    <Style TargetType="DataGridRow">
-                        <Style.Triggers>
-                            <Trigger Property="IsSelected"
-                                     Value="True">
-                                <Setter Property="BorderBrush"
-                                        Value="LawnGreen" />
-                                <Setter Property="BorderThickness"
-                                        Value="2" />
-                                <Setter Property="Opacity"
-                                        Value="0.8" />
-                            </Trigger>
-                        </Style.Triggers>
-                    </Style>
-                </DataGrid.RowStyle>
-                <b:Interaction.Behaviors>
-                    <local:ScrollToSelectedListBoxItemBehaviour />
-                </b:Interaction.Behaviors>
-                <DataGrid.Columns>
-                    <DataGridTextColumn Header="СЛОВО" Width="200" FontSize="24" Binding="{Binding Name}"/>
-                    <DataGridTextColumn Header="ОЧКИ" FontSize="24" Binding="{Binding Stoimost}"/>
-                </DataGrid.Columns>
-            </DataGrid>
+            <StackPanel HorizontalAlignment="Stretch">
+                <DataGrid ItemsSource="{Binding Words, Mode=OneWay}" AutoGenerateColumns="False" 
+                          SelectedItem="{Binding SelectedWord, Mode=TwoWay}">
+                    <DataGrid.RowStyle>
+                        <Style TargetType="DataGridRow">
+                            <Style.Triggers>
+                                <Trigger Property="IsSelected"
+                                         Value="True">
+                                    <Setter Property="BorderBrush"
+                                            Value="LawnGreen" />
+                                    <Setter Property="BorderThickness"
+                                            Value="2" />
+                                    <Setter Property="Opacity"
+                                            Value="0.8" />
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGrid.RowStyle>
+                    <b:Interaction.Behaviors>
+                        <local:ScrollToSelectedListBoxItemBehaviour />
+                    </b:Interaction.Behaviors>
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="СЛОВО" Width="200" FontSize="24" Binding="{Binding Name}"/>
+                        <DataGridTextColumn Header="ОЧКИ" FontSize="24" Binding="{Binding Stoimost}"/>
+                        <DataGridTemplateColumn Header="Удаление">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Button Command="{Binding RemoveWordCommand, Mode=OneWay}" CommandParameter="{Binding Mode=OneWay}">Remove</Button>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+                <Grid HorizontalAlignment="Stretch" Background="Beige">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Label HorizontalAlignment="Left">Новое слово</Label>
+                    <TextBox Grid.Column="1" Text="{Binding NewWord, Mode=TwoWay}" TextAlignment="Center" MaxLines="1" HorizontalAlignment="Stretch" ></TextBox>
+                    <Button Grid.Column="2" Command="{Binding AddWordCommand, Mode=OneWay}" Margin="10,0" Width="50">Add</Button>
+                </Grid>
+            </StackPanel>
         </Grid>
         
         <StackPanel VerticalAlignment="Stretch" HorizontalAlignment="Stretch" Background="White" Grid.Row="0" Grid.RowSpan="2" Grid.Column="1" Width="304">
