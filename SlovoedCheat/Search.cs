@@ -1,30 +1,38 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
-using Catel.MVVM;
 
 namespace SlovoedCheat
 {
+    public static class DictionaryOfWords
+    {
+        public static List<string> Items { get; set; }
+
+        public static void Remove(string wordName)
+        {
+            Items?.Remove(wordName);
+        }
+
+        public static void Add(string newWord)
+        {
+            Items?.Add(newWord);
+        }
+    }
+
     public class SearchTask
     {
-        public event EventHandler<List<Word>> MethodOK;
-        public Character[][] Matrix;
-        public List<Word> _words { get; private set; }
-        public List<Word> _wordsNine { get; private set; }
-        public static List<string> dict;
+        public event EventHandler<IEnumerable<Word>> MethodOK;
+        private Character[][] Matrix;
+        private readonly List<Word> _words;
 
         public SearchTask(Character[][] matrix)
         {
             Matrix = matrix;
             _words = new List<Word>();
-            _wordsNine = new List<Word>(); 
-            dict = new List<string>();
-            dict.AddRange(File.ReadAllLines("russian.txt"));
         }
 
         private void NewMethodNoRecurse(int i, int j, CancellationToken ct)
@@ -43,6 +51,7 @@ namespace SlovoedCheat
             current.IsUsed = true;
             current.Index = currentWord.Length + 1;
             currentWord.Stoimost = currentWord.Stoimost + current.XKoef * current.Index;
+            currentWord.Stoimost2 = currentWord.Stoimost2 + current.Index;
             currentWord.Points.Add(new Point(currentX, currentY));
             currentWord += current;
             if (current.CKoef != 1)
@@ -55,6 +64,7 @@ namespace SlovoedCheat
                 _words.Add(new Word(currentWord.Name)
                 {
                     Stoimost = currentWord.Stoimost * currentWord.CCoef,
+                    Stoimost2 = currentWord.Stoimost2,
                     Points = new List<Point>(currentWord.Points)
                 });
             }
@@ -75,6 +85,7 @@ namespace SlovoedCheat
             NewMethod(currentWord, xm1, ym1, ct);
             currentWord = currentWord - 1;
             currentWord.Stoimost = currentWord.Stoimost - current.XKoef * current.Index;
+            currentWord.Stoimost2 = currentWord.Stoimost2 - current.Index;
             currentWord.Points.RemoveAt(currentWord.Length);
             if (current.CKoef != 1)
                 currentWord.CCoef /= current.CKoef;
@@ -91,7 +102,25 @@ namespace SlovoedCheat
                     NewMethodNoRecurse(k, l, cancellationTokenSource.Token);
                 }
             }
-            MethodOK?.Invoke(this, _words);
+
+            var d = DictionaryOfWords.Items;
+            _words.Sort(Comparer);
+            var noDupl = _words.Distinct(new DistinctItemComparer());
+            var dictStoim = noDupl.ToDictionary(word => word.Name, word => word);
+
+            var ttt = dictStoim.Keys.Intersect(d).Select(x => new Word(x)
+            {
+                Stoimost = dictStoim[x].Stoimost,
+                Stoimost2 = dictStoim[x].Stoimost2,
+                Points = dictStoim[x].Points
+            });
+            MethodOK?.Invoke(this, ttt);
+        }
+
+        private int Comparer(Word arg1, Word arg2)
+        {
+            if (arg1.Stoimost == arg2.Stoimost) return 0;
+            return arg1.Stoimost < arg2.Stoimost ? 1 : -1;
         }
 
         public void Clear()

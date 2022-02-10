@@ -1,29 +1,19 @@
 ﻿using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Drawing;
-using System.Reflection;
-using System.Windows.Documents;
 using System.Windows.Media;
 using Catel.Data;
 using Catel.MVVM;
-using Brush = System.Drawing.Brush;
 
 namespace SlovoedCheat
 {
     public class Word
     {
         public string Name { get; set; }
-        private int _stoimost { get; set; }
-
-        public int Stoimost
-        {
-            get => _stoimost;
-            set => _stoimost = value;
-        }
+        public int Stoimost { get; set; }
+        public int Stoimost2 { get; set; }
 
         public int Length => Name?.Length ?? 0;
         public int CCoef { get; set; } = 1;
-        public int UniqueKey { get; set; }
         public List<Point> Points { get; set; }
 
         public Word()

@@ -6,18 +6,17 @@ using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
+using System.Windows;
 using System.Windows.Media;
 using Catel.Collections;
 using Catel.Data;
-using Catel.IoC;
 using Catel.MVVM;
 using Color = System.Drawing.Color;
-using Form = System.Windows.Forms.Form;
 using Point = System.Drawing.Point;
+using Size = System.Drawing.Size;
 using Timer = System.Timers.Timer;
 
 namespace SlovoedCheat
@@ -42,20 +41,19 @@ namespace SlovoedCheat
         }
 
         public ObservableCollection<Word> Words { get; private set; }
-        public Character[][] Matrix;
-        public Command SearchCommand { get; set; }
-        public Command StartTimeCommand { get; set; }
-        public Command StopCommand { get; set; }
-        public Command StartMouseMoveCommand { get; set; }
-        public Command GetMatrixMoveCommand { get; set; }
-        public Command AddWordCommand { get; set; }
-        public Command<Word> RemoveWordCommand { get; set; }
+        private Character[][] _matrix;
+        public Command SearchCommand { get; }
+        public Command StartTimeCommand { get; }
+        public Command StopCommand { get; }
+        public Command StartMouseMoveCommand { get; }
+        public Command GetMatrixMoveCommand { get; }
+        public Command AddWordCommand { get; }
+        public Command<Word> RemoveWordCommand { get; }
         public Command DeleteWordsCommand { get; }
-        private CancellationTokenSource ct;
-        private CancellationTokenSource ctInput;
-        private List<string> dict;
+        private CancellationTokenSource _cancellationTokenSourceSearch;
+        private CancellationTokenSource _cancellationTokenSourceMove;
         private SearchTask S { get; set; }
-        private System.Timers.Timer t { get; set; }
+        private Timer T { get; set; }
         private WondowInputMouse WindowInput { get; set; }
 
         public Word SelectedWord
@@ -78,19 +76,6 @@ namespace SlovoedCheat
         
         public DateTime EndTime { get; set; }
 
-
-        [DllImport("user32.dll", SetLastError = true)]
-        static extern uint SendInput(uint cInputs, INPUT input, int size);
-
-        public static void ClickSomePoint()
-        {
-            // Set the cursor position
-            System.Windows.Forms.Cursor.Position = new Point(20, 35);
-
-            DoClickMouse(0x2); // Left mouse button down
-            DoClickMouse(0x4); // Left mouse button up
-        }
-
         static void DoClickMouse(int mouseButton)
         {
             var input = new INPUT()
@@ -111,42 +96,40 @@ namespace SlovoedCheat
             SearchCommand = new Command(Search);
             StopCommand = new Command(() =>
             {
-                ct.Cancel();
+                _cancellationTokenSourceSearch.Cancel();
             });
-            StartTimeCommand = new Command(() =>
-            {
-                StartTimer();
-            });
+            StartTimeCommand = new Command(StartTimer);
             
             StartMouseMoveCommand = new Command(() =>
             {
-                ctInput = new CancellationTokenSource();
-                StartMove(ctInput.Token, Words);
+                _cancellationTokenSourceMove = new CancellationTokenSource();
+                StartMove(_cancellationTokenSourceMove.Token, Words.TakeLast(Words.Count - Words.IndexOf(SelectedWord)));
             });
             AddWordCommand = new Command(AddNewWord);
             RemoveWordCommand = new Command<Word>(RemoveWord);
             DeleteWordsCommand = new Command(DeleteWords);
-            var str24= "ларчйосьфетоажлсрьияидздя"; // уриновый
-            GetMatrixMoveCommand = new Command(Execute);
-            dict = new List<string>();
-            dict.AddRange(File.ReadAllLines("russian.txt"));
+            GetMatrixMoveCommand = new Command(GetImagesWords);
             WindowInput = new WondowInputMouse();
             WindowInput.Show();
             CurrentTime = "00:00";
             SourceText = "";
-            
+            S = new SearchTask(_matrix);
         }
 
         private void DeleteWords()
         {
-            var toDelete = File.ReadAllLines("../../../ToDelete.txt");
-            var words = File.ReadAllLines("russian.txt").ToList();
-            foreach (var s in toDelete)
+            if (File.Exists("../../../ToDelete.txt"))
             {
-                words.Remove(s);
+                var toDelete = File.ReadAllLines("../../../ToDelete.txt");
+                var words = File.ReadAllLines("russian.txt").ToList();
+                foreach (var s in toDelete)
+                {
+                    words.Remove(s);
+                }
+
+                File.WriteAllLines("../../../russian.txt", words);
+                File.Delete("../../../ToDelete.txt");
             }
-            File.WriteAllLines("../../../russian.txt", words);
-            File.Delete("../../../ToDelete.txt");
         }
 
         private void RemoveWord(Word word)
@@ -155,7 +138,7 @@ namespace SlovoedCheat
             {
                 Console.WriteLine();
                 File.AppendAllLines("../../../ToDelete.txt", new List<string> { word.Name});
-                dict.Remove(word.Name);
+                DictionaryOfWords.Remove(word.Name);
                 Words.Remove(word);
             }
         }
@@ -166,14 +149,14 @@ namespace SlovoedCheat
             {
                 //saveWord
                 File.AppendAllLines("../../../russian.txt", new List<string> { NewWord });
-                dict.Add(NewWord);
+                DictionaryOfWords.Add(NewWord);
                 NewWord = "";
             }
         }
 
-        private void Execute()
+        private void GetImagesWords()
         {
-            Matrix = new[]
+            _matrix = new[]
             {
                 new Character[5],
                 new Character[5],
@@ -183,15 +166,8 @@ namespace SlovoedCheat
             };
             MatrixView = new ObservableCollection<Character>();
 
-            var startPositionX = (int)WindowInput.Left + (int)WindowInput.PolygonWords.Points[0].X;
-            var startPositionY = (int)WindowInput.Top + (int)WindowInput.PolygonWords.Points[0].Y;
-            var height = (int)WindowInput.PolygonWords.Points[3].Y - (int)WindowInput.PolygonWords.Points[0].Y;
-            var width = (int)WindowInput.PolygonWords.Points[1].X - (int)WindowInput.PolygonWords.Points[0].X;
-            int h = (int)height / 5;
-            int w = (int)width / 5;
+            GetWidthAndHeight(out var startPositionX, out var startPositionY, out var h, out var w);
             var size = new Size(w, h);
-            Dictionary<int, int> dictColorChar = new Dictionary<int, int>();
-            var t = 0;
             for (int i = 0; i < 5; i++)
             {
                 for (int j = 0; j < 5; j++)
@@ -205,69 +181,37 @@ namespace SlovoedCheat
                             g.CopyFromScreen(new Point(xStart, yStart), new Point(0, 0), size);
                         }
 
-                        var countGray = 0;
                         for (int k = 0; k < w; k++)
                         {
                             for (int l = 0; l < h; l++)
                             {
-                                var pixel = bitmap.GetPixel(k, l);
-                                //if (pixel.R == pixel.G && pixel.R == pixel.B && pixel.R != 255) 
-                                //{ 
-                                 //   countGray++;
-                                   // bitmap.SetPixel(k, l, Color.Black);
-                                //}
-                               // else
-                                //{
-                                    var gray = (pixel.R + pixel.G + pixel.B)/3;
-                                    bitmap.SetPixel(k, l, Color.FromArgb(255, gray, gray, gray));
-                                //}
+                                var pixel = bitmap.GetPixel(k, l); 
+                                var gray = (pixel.R + pixel.G + pixel.B)/3;
+                                bitmap.SetPixel(k, l, Color.FromArgb(255, gray, gray, gray));
                             }
-                        }/*
-
-                        string s = "";
-                        if (countGray == 344 || countGray == 338) s = "к";
-                        if (countGray == 362) s = "о"; 
-                        if (countGray == 412) s = "в";
-                        if (countGray == 346 || countGray == 311) s = "е"; 
-                        if (countGray == 291 || countGray == 295) s = "р";
-                        if (countGray == 312 || countGray == 312 || countGray == 322 || countGray == 310) s = "а";
-                        if (countGray == 486) s = "м";
-                        if (countGray == 316) s = "л";
-                        if (countGray == 202) s = "т";
-                        if (countGray == 320) s = "ь";
-                        if (countGray == 332) s = "н";
-                        if (countGray == 385) s = "и";
-                        if (countGray == 345) s = "п";
-                        if (countGray == 321) s = "с";
-                        */
-                        //Matrix[i][j] = new Character(s);
-
-                        //dictColorChar.Add(t, countGray);
-                        //t++;
+                        }
                         bitmap.Save($"{Guid.NewGuid():N}.jpg", ImageFormat.Jpeg);
                     }
                 }
             }
+        }
 
-            /*foreach (var value in Matrix)
-            {
-                foreach (var character in value)
-                {
-                    character.Brush = new SolidColorBrush(System.Windows.Media.Color.FromArgb(255, 255, 255, 255));
-                    MatrixView.Add(character);
-                }
-            }*/
-
-
-            int y = 0;
+        private void GetWidthAndHeight(out int startPositionX, out int startPositionY, out int h, out int w)
+        {
+            startPositionX = (int) WindowInput.Left + (int) WindowInput.PolygonWords.Points[0].X;
+            startPositionY = (int) WindowInput.Top + (int) WindowInput.PolygonWords.Points[0].Y;
+            var height = (int) WindowInput.PolygonWords.Points[3].Y - (int) WindowInput.PolygonWords.Points[0].Y;
+            var width = (int) WindowInput.PolygonWords.Points[1].X - (int) WindowInput.PolygonWords.Points[0].X;
+            h = height / 5;
+            w = width / 5;
         }
 
         private void StartTimer()
         {
-            t?.Stop();
-            t = new Timer(1000);
-            t.Start();
-            t.Elapsed += TOnElapsed;
+            T?.Stop();
+            T = new Timer(1000);
+            T.Start();
+            T.Elapsed += TOnElapsed;
             EndTime = DateTime.Now + TimeSpan.FromMinutes(2);
         }
 
@@ -277,31 +221,15 @@ namespace SlovoedCheat
             CurrentTime = timeSpan.ToString(@"m\:ss");
             if (e.SignalTime >= EndTime)
             {
-                ctInput?.Cancel(); 
-                t.Stop();
+                _cancellationTokenSourceMove?.Cancel(); 
+                T.Stop();
             }
         }
 
-        private void Callback(object? state)
+        private void StartMove(CancellationToken token, IEnumerable<Word> words)
         {
-            
-        }
-
-        private void StartMove(CancellationToken token, IReadOnlyList<Word> words)
-        {
-            var startPositionX = (int)WindowInput.Left + (int)WindowInput.PolygonWords.Points[0].X;
-            var startPositionY = (int)WindowInput.Top + (int)WindowInput.PolygonWords.Points[0].Y;
-            var height = (int)WindowInput.PolygonWords.Points[3].Y - (int)WindowInput.PolygonWords.Points[0].Y;
-            var width = (int)WindowInput.PolygonWords.Points[1].X - (int)WindowInput.PolygonWords.Points[0].X;
-            int h = (int)height / 5;
-            int w = (int)width / 5;
-
-            var startPositionOKBTNX = (int)WindowInput.Left + (int)WindowInput.PolygonButton.Points[0].X;
-            var startPositionOKBTNY = (int)WindowInput.Top + (int)WindowInput.PolygonButton.Points[0].Y;
-            var heightOKBTN = (int)WindowInput.PolygonButton.Points[3].Y - (int)WindowInput.PolygonButton.Points[0].Y;
-            var widthOKBTN = (int)WindowInput.PolygonButton.Points[1].X - (int)WindowInput.PolygonButton.Points[0].X;
-            int xClickOK = startPositionOKBTNX+ widthOKBTN / 2;
-            int yClickOK = startPositionOKBTNY + heightOKBTN / 2 ;
+            GetWidthAndHeight(out var startPositionX, out var startPositionY, out var h, out var w);
+            GetWidthAndHeightButton(out var xClickOk, out var yClickOk);
 
             WindowInput.Close();
             try
@@ -317,7 +245,7 @@ namespace SlovoedCheat
                             if (Math.Abs(position.X - System.Windows.Forms.Cursor.Position.X) > 10 
                                 || Math.Abs(position.Y - System.Windows.Forms.Cursor.Position.Y) > 10)
                                 break;
-                            App.Current.Dispatcher.Invoke(() =>
+                            Application.Current.Dispatcher.Invoke(() =>
                             {
                                 SelectedWord = word;
                             });
@@ -344,7 +272,7 @@ namespace SlovoedCheat
                             DoClickMouse(0x4);
                             if (i < 3)
                             {
-                                System.Windows.Forms.Cursor.Position = new Point(xClickOK, yClickOK); 
+                                System.Windows.Forms.Cursor.Position = new Point(xClickOk, yClickOk); 
                                 position = System.Windows.Forms.Cursor.Position;
                                 await Task.Delay(100, token);
                                 DoClickMouse(0x2);
@@ -354,14 +282,24 @@ namespace SlovoedCheat
                     }
                     catch (Exception)
                     {
-
+                        // ignored
                     }
                 }, token);
             }
             catch (Exception)
             {
-                
+                // ignored
             }
+        }
+
+        private void GetWidthAndHeightButton(out int xClickOk, out int yClickOk)
+        {
+            var startPositionOkBtnX = (int)WindowInput.Left + (int)WindowInput.PolygonButton.Points[0].X;
+            var startPositionOkBtnY = (int)WindowInput.Top + (int)WindowInput.PolygonButton.Points[0].Y;
+            var heightOkBtn = (int)WindowInput.PolygonButton.Points[3].Y - (int)WindowInput.PolygonButton.Points[0].Y;
+            var widthOkBtn = (int)WindowInput.PolygonButton.Points[1].X - (int)WindowInput.PolygonButton.Points[0].X;
+            xClickOk = startPositionOkBtnX + widthOkBtn / 2;
+            yClickOk = startPositionOkBtnY + heightOkBtn / 2;
         }
 
         protected override void OnPropertyChanged(AdvancedPropertyChangedEventArgs e)
@@ -388,39 +326,23 @@ namespace SlovoedCheat
             }
         }
 
-        private void OnMethodOK(object? sender, List<Word> words)
+        private void OnMethodOK(object sender, IEnumerable<Word> words)
         {
-            var d = dict;
-            words.Sort(Comparer);
-            var noDupl = words.Distinct(new DistinctItemComparer());
-            var dictStoim = noDupl.ToDictionary(word => word.Name, word => word);
-
-            var ttt = dictStoim.Keys.Intersect(d).Select(x => new Word(x)
+            Application.Current.Dispatcher.Invoke(() =>
             {
-                Stoimost = dictStoim[x].Stoimost,
-                Points = dictStoim[x].Points
-            });
-
-            App.Current.Dispatcher.Invoke(() =>
-            {
-                Words.AddRange(ttt);
+                Words.AddRange(words);
+                SelectedWord = Words.First();
             });
 
             S.Clear();
         }
-        
-        private int Comparer(Word arg1, Word arg2)
-        {
-            if (arg1.Stoimost == arg2.Stoimost) return 0;
-            return arg1.Stoimost < arg2.Stoimost ? 1 : -1;
-        }
 
         private void Search()
         {
-            ct = new CancellationTokenSource();
+            _cancellationTokenSourceSearch = new CancellationTokenSource();
             var str = SourceText.Length == 0 ? "ларчйосьфетоажлсрьияидздя" : SourceText;
 
-            Matrix = new[]
+            _matrix = new[]
             {
                 new Character[5],
                 new Character[5],
@@ -432,7 +354,7 @@ namespace SlovoedCheat
 
             MatrixView = new ObservableCollection<Character>();
 
-            foreach (var value in Matrix)
+            foreach (var value in _matrix)
             {
                 foreach (var character in value)
                 {
@@ -445,10 +367,10 @@ namespace SlovoedCheat
 
             Task.Run(() =>
             {
-                S = new SearchTask(Matrix);
+                S = new SearchTask(_matrix);
                 S.MethodOK += OnMethodOK;
-                S.Search(ct);
-            }, ct.Token);
+                S.Search(_cancellationTokenSourceSearch);
+            }, _cancellationTokenSourceSearch.Token);
         }
 
         private void SetMatrix(string str)
@@ -459,39 +381,38 @@ namespace SlovoedCheat
                 for (int j = 0; j < 5; j++)
                 {
                     var name = str[index].ToString();
-                    var X = 0;
-                    var t = int.TryParse(name, out X);
+                    var t = int.TryParse(name, out var x);
                     if (t)
                     {
                         index++;
                         name = str[index].ToString();
-                        if (X is 4)
+                        if (x is 4)
                         {
-                            Matrix[i][j] = new Character(name)
+                            _matrix[i][j] = new Character(name)
                             {
                                 CKoef = 1,
                                 XKoef = 3
                             };
                         }
-                        else if (X is 3)
+                        else if (x is 3)
                         {
-                            Matrix[i][j] = new Character(name)
+                            _matrix[i][j] = new Character(name)
                             {
                                 CKoef = 1,
                                 XKoef = 2
                             };
                         }
-                        else if (X is 1)
+                        else if (x is 1)
                         {
-                            Matrix[i][j] = new Character(name)
+                            _matrix[i][j] = new Character(name)
                             {
                                 CKoef = 2,
                                 XKoef = 1
                             };
                         }
-                        else if (X is 2)
+                        else if (x is 2)
                         {
-                            Matrix[i][j] = new Character(name)
+                            _matrix[i][j] = new Character(name)
                             {
                                 CKoef = 3,
                                 XKoef = 1
@@ -500,7 +421,7 @@ namespace SlovoedCheat
                     }
                     else
                     {
-                        Matrix[i][j] = new Character(name)
+                        _matrix[i][j] = new Character(name)
                         {
                             CKoef = 1,
                             XKoef = 1
@@ -511,5 +432,8 @@ namespace SlovoedCheat
                 }
             }
         }
+
+        [DllImport("user32.dll", SetLastError = true)]
+        static extern uint SendInput(uint cInputs, INPUT input, int size);
     }
 }

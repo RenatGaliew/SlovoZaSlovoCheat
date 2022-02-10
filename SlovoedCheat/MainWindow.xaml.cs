@@ -1,4 +1,6 @@
-﻿using System.Windows;
+﻿using System.Collections.Generic;
+using System.IO;
+using System.Windows;
 
 namespace SlovoedCheat
 {
@@ -10,6 +12,9 @@ namespace SlovoedCheat
         public MainWindow()
         {
             InitializeComponent(); 
+            DictionaryOfWords.Items = new List<string>();
+            DictionaryOfWords.Items.AddRange(File.ReadAllLines("russian.txt"));
+
             MainViewModel mainWindowViewModel = new MainViewModel();
             this.DataContext = mainWindowViewModel;
         }

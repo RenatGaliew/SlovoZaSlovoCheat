@@ -58,6 +58,7 @@
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="СЛОВО" Width="200" FontSize="24" Binding="{Binding Name}"/>
                         <DataGridTextColumn Header="ОЧКИ" FontSize="24" Binding="{Binding Stoimost}"/>
+                        <DataGridTextColumn Header="ОЧКИ" FontSize="24" Binding="{Binding Stoimost2}"/>
                         <DataGridTemplateColumn Header="Удаление">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate DataType="{x:Type local:Word}">
